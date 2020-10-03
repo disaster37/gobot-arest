@@ -18,6 +18,7 @@ type Client struct {
 	isDebug bool
 	url     string
 	timeout time.Duration
+	pins    map[int]*client.Pin
 	gobot.Eventer
 }
 
@@ -30,12 +31,18 @@ func NewClient(url string, timeout time.Duration, isDebug bool) *Client {
 		url:     url,
 		timeout: timeout,
 		Eventer: gobot.NewEventer(),
+		pins:    make(map[int]*client.Pin),
 	}
 }
 
 // Client permit to get curent resty client
 func (c *Client) Client() *resty.Client {
 	return c.resty
+}
+
+// Return the current pins
+func (c *Client) Pins() map[int]*client.Pin {
+	return c.pins
 }
 
 // Connect start connection to the board
@@ -70,6 +77,21 @@ func (c *Client) Reconnect(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Set pin mode and output
+	for pin, state := range c.pins {
+		err = c.SetPinMode(ctx, pin, state.Mode)
+		if err != nil {
+			return err
+		}
+
+		if state.Mode == client.ModeOutput {
+			err = c.DigitalWrite(ctx, pin, state.Value)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -82,6 +104,10 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 	default:
 		if c.isDebug {
 			log.Debugf("Pin: %d, Mode: %d", pin, mode)
+		}
+
+		if c.pins[pin] == nil {
+			c.pins[pin] = &client.Pin{}
 		}
 
 		if mode != client.ModeInput && mode != client.ModeInputPullup && mode != client.ModeOutput {
@@ -99,6 +125,8 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 			log.Debugf("Resp: %s", resp.String())
 		}
 
+		c.pins[pin].Mode = mode
+
 		return err
 	}
 }
@@ -112,6 +140,10 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 	default:
 		if c.isDebug {
 			log.Debugf("Pin: %d, Level: %d", pin, level)
+		}
+
+		if c.pins[pin] == nil {
+			c.pins[pin] = &client.Pin{}
 		}
 
 		if level != client.LevelHigh && level != client.LevelLow {
@@ -128,6 +160,8 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 		if c.isDebug {
 			log.Debugf("Resp: %s", resp.String())
 		}
+
+		c.pins[pin].Value = level
 
 		return err
 	}

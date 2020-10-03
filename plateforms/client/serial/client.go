@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/disaster37/go-arest/arest"
 	"github.com/disaster37/gobot-arest/v1/plateforms/client"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -23,6 +23,14 @@ type Client struct {
 	port       string
 	timeout    time.Duration
 	mutex      sync.Mutex
+
+	// It permit to exchange error, result and start watchdog between read routine and write
+	com *Com
+
+	// It permit to know if current connexion is connected
+	connected atomic.Value
+
+	pins map[int]*client.Pin
 	gobot.Eventer
 }
 
@@ -36,12 +44,36 @@ func NewClient(port string, serialMode *serial.Mode, timeout time.Duration, isDe
 		serialMode: serialMode,
 		timeout:    timeout,
 		mutex:      sync.Mutex{},
-		Eventer:    gobot.NewEventer(),
+		connected:  atomic.Value{},
+		com: &Com{
+			Res:      make(chan string),
+			Err:      make(chan error),
+			Watchdog: make(chan bool),
+		},
+		Eventer: gobot.NewEventer(),
+		pins:    make(map[int]*client.Pin),
 	}
 
 	client.AddEvent("connected")
 	client.AddEvent("disconnected")
 	client.AddEvent("reconnected")
+	client.AddEvent("timeout")
+	client.connected.Store(false)
+
+	// It permit to try to reconnect on serial if timeout throw from watchdog
+	// It try for ever to reconnect on board
+	client.On("timeout", func(s interface{}) {
+		isReconnected := false
+		for !isReconnected {
+			time.Sleep(1 * time.Millisecond)
+			err := client.Reconnect(context.TODO())
+			if err == nil {
+				isReconnected = true
+			} else {
+				log.Error(err)
+			}
+		}
+	})
 
 	return client
 }
@@ -51,31 +83,52 @@ func (c *Client) Client() serial.Port {
 	return c.serialPort
 }
 
+// Return the current pins
+func (c *Client) Pins() map[int]*client.Pin {
+	return c.pins
+}
+
 // Connect start connection to the board
-// We just try read port 0 value to check http connexion is ready
+// It call the root url to check if board is online
 func (c *Client) Connect(ctx context.Context) (err error) {
+
+	if c.connected.Load().(bool) {
+		return
+	}
 
 	serialPort, err := serial.Open(c.port, c.serialMode)
 	if err != nil {
 		return err
 	}
+	c.serialPort = serialPort
 
 	// clean current serial
 	serialPort.ResetInputBuffer()
 	serialPort.ResetOutputBuffer()
 
-	_, err = c.DigitalRead(ctx, 0)
+	// Start routine to read serial
+	c.readProcess(ctx)
+
+	// Try connexion
+	time.Sleep(1 * time.Second)
+	_, err = c.write(ctx, "/")
 	if err != nil {
 		return err
 	}
 
 	c.Publish("connected", true)
+	c.connected.Store(true)
+
 	return nil
 }
 
 // Disconnect close connecion to the board
 func (c *Client) Disconnect(ctx context.Context) (err error) {
+
+	c.connected.Store(false)
 	err = c.serialPort.Close()
+	c.serialPort.ResetInputBuffer()
+	c.serialPort.ResetOutputBuffer()
 
 	if err != nil {
 		return err
@@ -92,9 +145,27 @@ func (c *Client) Reconnect(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(1 * time.Second)
+
 	err = c.Connect(ctx)
 	if err != nil {
 		return err
+	}
+
+	// Set pin mode and output
+	for pin, state := range c.pins {
+		err = c.SetPinMode(ctx, pin, state.Mode)
+		if err != nil {
+			return err
+		}
+
+		if state.Mode == client.ModeOutput {
+			err = c.DigitalWrite(ctx, pin, state.Value)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	c.Publish("reconnected", true)
@@ -104,6 +175,14 @@ func (c *Client) Reconnect(ctx context.Context) (err error) {
 
 // SetPinMode permit to set pin mode
 func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err error) {
+
+	if !c.connected.Load().(bool) {
+		return errors.New("Not connected")
+	}
+
+	if c.pins[pin] == nil {
+		c.pins[pin] = &client.Pin{}
+	}
 
 	select {
 	case <-ctx.Done():
@@ -122,26 +201,16 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 
 		url := fmt.Sprintf("/mode/%d/%s\n\r", pin, mode)
 
-		com := c.read(ctx)
-		_, err = c.serialPort.Write([]byte(url))
+		resp, err := c.write(ctx, url)
 		if err != nil {
 			return err
 		}
 
-		var resp string
-		select {
-		case <-ctx.Done():
-			com.Cancel()
-			return ctx.Err()
-		case err := <-com.Err:
-			return err
-		case resp = <-com.Res:
-
-		}
-
 		if c.isDebug {
-			arest.Debug("Resp: %s", resp)
+			log.Debug("Resp: %s", resp)
 		}
+
+		c.pins[pin].Mode = mode
 
 		return nil
 	}
@@ -149,6 +218,11 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 
 // DigitalWrite permit to set level on pin
 func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err error) {
+
+	if !c.connected.Load().(bool) {
+		return errors.New("Not connected")
+	}
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -157,7 +231,7 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 		defer c.mutex.Unlock()
 
 		if c.isDebug {
-			log.Debugf("Pin: %d, Level: %s", pin, level)
+			log.Debugf("Pin: %d, Level: %d", pin, level)
 		}
 
 		if level != client.LevelHigh && level != client.LevelLow {
@@ -166,26 +240,16 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 
 		url := fmt.Sprintf("/digital/%d/%d\n\r", pin, level)
 
-		com := c.read(ctx)
-
-		_, err = c.serialPort.Write([]byte(url))
+		resp, err := c.write(ctx, url)
 		if err != nil {
 			return err
-		}
-
-		var resp string
-		select {
-		case <-ctx.Done():
-			com.Cancel()
-			return ctx.Err()
-		case err := <-com.Err:
-			return err
-		case resp = <-com.Res:
 		}
 
 		if c.isDebug {
 			log.Debugf("Resp: %s", resp)
 		}
+
+		c.pins[pin].Value = level
 
 		return nil
 	}
@@ -193,6 +257,11 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 
 // DigitalRead permit to read level from pin
 func (c *Client) DigitalRead(ctx context.Context, pin int) (level int, err error) {
+
+	if !c.connected.Load().(bool) {
+		return level, errors.New("Not connected")
+	}
+
 	select {
 	case <-ctx.Done():
 		return level, ctx.Err()
@@ -207,21 +276,9 @@ func (c *Client) DigitalRead(ctx context.Context, pin int) (level int, err error
 		url := fmt.Sprintf("/digital/%d\n\r", pin)
 		data := make(map[string]interface{})
 
-		com := c.read(ctx)
-
-		_, err = c.serialPort.Write([]byte(url))
+		resp, err := c.write(ctx, url)
 		if err != nil {
 			return level, err
-		}
-
-		var resp string
-		select {
-		case <-ctx.Done():
-			com.Cancel()
-			return level, ctx.Err()
-		case err := <-com.Err:
-			return level, err
-		case resp = <-com.Res:
 		}
 
 		if c.isDebug {
@@ -239,6 +296,10 @@ func (c *Client) DigitalRead(ctx context.Context, pin int) (level int, err error
 
 // ReadValue permit to read user variable
 func (c *Client) ReadValue(ctx context.Context, name string) (value interface{}, err error) {
+	if !c.connected.Load().(bool) {
+		return value, errors.New("Not connected")
+	}
+
 	select {
 	case <-ctx.Done():
 		return value, ctx.Err()
@@ -253,21 +314,9 @@ func (c *Client) ReadValue(ctx context.Context, name string) (value interface{},
 		url := fmt.Sprintf("/%s\n\r", name)
 		data := make(map[string]interface{})
 
-		com := c.read(ctx)
-
-		_, err = c.serialPort.Write([]byte(url))
+		resp, err := c.write(ctx, url)
 		if err != nil {
 			return nil, err
-		}
-
-		var resp string
-		select {
-		case <-ctx.Done():
-			com.Cancel()
-			return nil, ctx.Err()
-		case err := <-com.Err:
-			return nil, err
-		case resp = <-com.Res:
 		}
 
 		if c.isDebug {
@@ -291,6 +340,10 @@ func (c *Client) ReadValue(ctx context.Context, name string) (value interface{},
 
 // ReadValues permit to read user variable
 func (c *Client) ReadValues(ctx context.Context) (values map[string]interface{}, err error) {
+	if !c.connected.Load().(bool) {
+		return values, errors.New("Not connected")
+	}
+
 	select {
 	case <-ctx.Done():
 		return values, ctx.Err()
@@ -300,21 +353,9 @@ func (c *Client) ReadValues(ctx context.Context) (values map[string]interface{},
 		url := "/\n\r"
 		data := make(map[string]interface{})
 
-		com := c.read(ctx)
-
-		_, err = c.serialPort.Write([]byte(url))
+		resp, err := c.write(ctx, url)
 		if err != nil {
 			return nil, err
-		}
-
-		var resp string
-		select {
-		case <-ctx.Done():
-			com.Cancel()
-			return nil, ctx.Err()
-		case err := <-com.Err:
-			return nil, err
-		case resp = <-com.Res:
 		}
 
 		if c.isDebug {
@@ -338,6 +379,10 @@ func (c *Client) ReadValues(ctx context.Context) (values map[string]interface{},
 
 // CallFunction permit to call user function
 func (c *Client) CallFunction(ctx context.Context, name string, param string) (value int, err error) {
+	if !c.connected.Load().(bool) {
+		return value, errors.New("Not connected")
+	}
+
 	select {
 	case <-ctx.Done():
 		return value, ctx.Err()
@@ -352,21 +397,9 @@ func (c *Client) CallFunction(ctx context.Context, name string, param string) (v
 		url := fmt.Sprintf("/%s?params=%s\n\r", name, param)
 		data := make(map[string]interface{})
 
-		com := c.read(ctx)
-
-		_, err = c.serialPort.Write([]byte(url))
+		resp, err := c.write(ctx, url)
 		if err != nil {
 			return value, err
-		}
-
-		var resp string
-		select {
-		case <-ctx.Done():
-			com.Cancel()
-			return value, ctx.Err()
-		case err := <-com.Err:
-			return value, err
-		case resp = <-com.Res:
 		}
 
 		if c.isDebug {

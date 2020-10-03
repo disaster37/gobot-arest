@@ -11,5 +11,6 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	go.bug.st/serial v1.1.1
 	gobot.io/x/gobot v1.14.0
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f // indirect
 	google.golang.org/appengine v1.6.6
 )

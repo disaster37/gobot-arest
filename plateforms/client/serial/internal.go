@@ -10,81 +10,67 @@ import (
 
 // Com permit communication with read routine
 type Com struct {
-	Err    chan error
-	cancel chan bool
-	Res    chan string
+	Err      chan error
+	Res      chan string
+	Watchdog chan bool
 }
 
-// Cancel permit to stop current routine
-func (c *Com) Cancel() {
-	c.cancel <- true
-}
+func (c *Client) readProcess(ctx context.Context) {
 
-func (c *Client) read(ctx context.Context) *Com {
+	// Channel to sync watchdog with read routine
+	chPing := make(chan bool)
+	chEnd := make(chan bool)
 
-	com := &Com{
-		Err:    make(chan error),
-		Res:    make(chan string),
-		cancel: make(chan bool),
-	}
-
-	ping := make(chan bool)
-	end := make(chan bool)
-
-	// Run watchdog routine
+	// Run watchdog routine when write
 	go func() {
-		timer := time.NewTicker(c.timeout)
-		select {
-		case <-ctx.Done():
-			if c.isDebug {
-				log.Debugf("Watchdog exit because of context done")
+		for {
+			// Start watchdog when write is called
+			<-c.com.Watchdog
+
+			timer := time.NewTicker(c.timeout)
+			stopWatchdogLoop := false
+
+			for !stopWatchdogLoop {
+				select {
+				case <-ctx.Done():
+					// context done
+					if c.isDebug {
+						log.Debugf("Watchdog exit because of context done")
+					}
+					return
+				case <-chPing:
+					// Reset timer
+					timer = time.NewTicker(c.timeout)
+				case <-timer.C:
+					// Timeout
+					if c.isDebug {
+						log.Debug("Watchdog detect timeout, we close connexion")
+					}
+					c.Publish("timeout", true)
+					return
+				case <-chEnd:
+					// read complet
+					stopWatchdogLoop = true
+				}
 			}
-			return
-		case <-ping:
-			// Reset timer
-			timer = time.NewTicker(c.timeout)
-		case <-timer.C:
-			if c.isDebug {
-				log.Debug("Watchdog detect timeout, we reconnect on board")
-			}
-			err := c.Reconnect(ctx)
-			if err != nil {
-				com.Err <- err
-				return
-			}
-			if c.isDebug {
-				log.Debug("Watchdog successfully reconnect on board")
-			}
-		case <-end:
-			return
-		case <-com.Err:
-			return
-		case <-com.cancel:
-			return
 		}
 	}()
 
-	// Read process
+	// Read routine
 	go func() {
-		select {
-		case <-ctx.Done():
-			com.Err <- ctx.Err()
-		default:
+		buffer := make([]byte, 4096)
+		var resp strings.Builder
+		loop := true
 
-			buffer := make([]byte, 2048)
-			var resp strings.Builder
-			loop := true
-
+		for {
 			for loop {
 				select {
-				case <-com.Err:
-					return
-				case <-com.cancel:
+				case <-ctx.Done():
 					return
 				default:
 					n, err := c.serialPort.Read(buffer)
 					if err != nil {
-						com.Err <- err
+						c.com.Err <- err
 						return
 					}
 					if n == 0 {
@@ -98,15 +84,38 @@ func (c *Client) read(ctx context.Context) *Com {
 						break
 					}
 
-					ping <- true
+					chPing <- true
 				}
 			}
 
-			end <- true
-			com.Res <- resp.String()
-			return
+			chEnd <- true
+			loop = true
+			c.com.Res <- resp.String()
+			resp.Reset()
 		}
 	}()
+}
 
-	return com
+// write permit to sync the read/write on serial
+func (c *Client) write(ctx context.Context, url string) (res string, err error) {
+
+	// Start watchdog
+	c.com.Watchdog <- true
+
+	// Write query on serial
+	_, err = c.serialPort.Write([]byte(url))
+	if err != nil {
+		return "", err
+	}
+
+	// Wait result
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case err := <-c.com.Err:
+		return "", err
+	case res = <-c.com.Res:
+	}
+
+	return res, nil
 }

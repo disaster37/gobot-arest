@@ -2,7 +2,9 @@ package arest
 
 import (
 	"context"
+	"time"
 
+	"github.com/disaster37/gobot-arest/v1/plateforms/client"
 	"gobot.io/x/gobot"
 )
 
@@ -34,15 +36,59 @@ type arestBoard interface {
 	// CallFunction permit to call user function
 	CallFunction(ctx context.Context, name string, param string) (resp int, err error)
 
+	Pins() map[int]*client.Pin
+
 	gobot.Eventer
 }
 
 // ArestAdaptor represent the arest adaptor interface
 type ArestAdaptor interface {
-	Connect(ctx context.Context) (err error)
-	Finalize(ctx context.Context) (err error)
-	Reconnect(ctx context.Context) (err error)
+	Connect() (err error)
+	Finalize() (err error)
+	Reconnect() (err error)
 	Name() string
 	SetName(n string)
 	gobot.Eventer
+}
+
+// Adaptor is a general Arest Adaptor
+type Adaptor struct {
+	timeout time.Duration
+	isDebug bool
+	Board   arestBoard
+	gobot.Eventer
+	name string
+}
+
+// Connect init connection throught HTTP to the board
+func (a *Adaptor) Connect() (err error) {
+	return a.Board.Connect(context.TODO())
+}
+
+// Disconnect close the connection to the Board
+func (a *Adaptor) Disconnect() (err error) {
+	if a.Board != nil {
+		return a.Board.Disconnect(context.TODO())
+	}
+	return nil
+}
+
+// Finalize terminates the Arest connection
+func (a *Adaptor) Finalize() (err error) {
+	return a.Disconnect()
+}
+
+// Reconnect permit to reopen connection to the board
+func (a *Adaptor) Reconnect() (err error) {
+	return a.Board.Reconnect(context.TODO())
+}
+
+// Name returns the Arest Adaptors name
+func (a *Adaptor) Name() string {
+	return a.name
+}
+
+// SetName sets the Arest Adaptors name
+func (a *Adaptor) SetName(name string) {
+	a.name = name
 }
