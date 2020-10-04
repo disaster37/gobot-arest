@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/disaster37/gobot-arest/v1/plateforms/client"
+	"github.com/disaster37/gobot-arest/v1/plateforms/arest/client"
 	"gobot.io/x/gobot"
 )
 

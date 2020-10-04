@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/disaster37/gobot-arest/v1/plateforms/client"
+	"github.com/disaster37/gobot-arest/v1/plateforms/arest/client"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"go.bug.st/serial"
@@ -192,7 +192,7 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 		defer c.mutex.Unlock()
 
 		if c.isDebug {
-			log.Debug("Pin: %d, Mode: %s", pin, mode)
+			log.Debugf("Pin: %d, Mode: %s", pin, mode)
 		}
 
 		if mode != client.ModeInput && mode != client.ModeInputPullup && mode != client.ModeOutput {
@@ -207,7 +207,7 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 		}
 
 		if c.isDebug {
-			log.Debug("Resp: %s", resp)
+			log.Debugf("Resp: %s", resp)
 		}
 
 		c.pins[pin].Mode = mode

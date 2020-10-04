@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/disaster37/gobot-arest/v1/plateforms/client"
+	"github.com/disaster37/gobot-arest/v1/plateforms/arest/client"
 )
 
 // DigitalWrite writes a value to the pin. Acceptable values are 1 or 0.
