@@ -3,7 +3,7 @@ package arest
 import (
 	"time"
 
-	restClient "github.com/disaster37/gobot-arest/v1/plateforms/arest/client/rest"
+	restClient "github.com/disaster37/gobot-arest/plateforms/arest/client/rest"
 	"gobot.io/x/gobot"
 )
 

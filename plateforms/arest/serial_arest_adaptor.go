@@ -3,7 +3,7 @@ package arest
 import (
 	"time"
 
-	serialClient "github.com/disaster37/gobot-arest/v1/plateforms/arest/client/serial"
+	serialClient "github.com/disaster37/gobot-arest/plateforms/arest/client/serial"
 	"go.bug.st/serial"
 	"gobot.io/x/gobot"
 )
