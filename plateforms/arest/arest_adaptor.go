@@ -2,6 +2,7 @@ package arest
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/disaster37/gobot-arest/plateforms/arest/client"
@@ -57,7 +58,8 @@ type Adaptor struct {
 	isDebug bool
 	Board   arestBoard
 	gobot.Eventer
-	name string
+	name  string
+	mutex sync.Mutex
 }
 
 // Connect init connection throught HTTP to the board

@@ -10,6 +10,9 @@ import (
 // DigitalWrite writes a value to the pin. Acceptable values are 1 or 0.
 func (a *Adaptor) DigitalWrite(pin string, level byte) (err error) {
 
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
 	p, err := strconv.Atoi(pin)
 	l := int(level)
 	ctx := context.TODO()
@@ -30,6 +33,9 @@ func (a *Adaptor) DigitalWrite(pin string, level byte) (err error) {
 // DigitalRead retrieves digital value from specified pin.
 // Returns -1 if the response from the board has timed out
 func (a *Adaptor) DigitalRead(pin string) (val int, err error) {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
 	p, err := strconv.Atoi(pin)
 	ctx := context.TODO()
 	if err != nil {
