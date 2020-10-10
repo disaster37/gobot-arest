@@ -23,27 +23,29 @@ type Client struct {
 	port       string
 	timeout    time.Duration
 	mutex      sync.Mutex
+	mutexPin   sync.Mutex
 
 	// It permit to exchange error, result and start watchdog between read routine and write
 	com *Com
 
 	// It permit to know if current connexion is connected
 	connected atomic.Value
-
-	pins map[int]*client.Pin
+	// It permit to set the right mode with digital read / write
+	pins atomic.Value
 	gobot.Eventer
 }
 
 // NewClient permit to initialize new client Object
 func NewClient(port string, serialMode *serial.Mode, timeout time.Duration, isDebug bool) *Client {
 
-	client := &Client{
+	clientArest := &Client{
 		serialPort: nil,
 		isDebug:    isDebug,
 		port:       port,
 		serialMode: serialMode,
 		timeout:    timeout,
 		mutex:      sync.Mutex{},
+		mutexPin:   sync.Mutex{},
 		connected:  atomic.Value{},
 		com: &Com{
 			Res:      make(chan string),
@@ -51,22 +53,24 @@ func NewClient(port string, serialMode *serial.Mode, timeout time.Duration, isDe
 			Watchdog: make(chan bool),
 		},
 		Eventer: gobot.NewEventer(),
-		pins:    make(map[int]*client.Pin),
+		pins:    atomic.Value{},
 	}
 
-	client.AddEvent("connected")
-	client.AddEvent("disconnected")
-	client.AddEvent("reconnected")
-	client.AddEvent("timeout")
-	client.connected.Store(false)
+	clientArest.pins.Store(make(map[int]*client.Pin))
+
+	clientArest.AddEvent("connected")
+	clientArest.AddEvent("disconnected")
+	clientArest.AddEvent("reconnected")
+	clientArest.AddEvent("timeout")
+	clientArest.connected.Store(false)
 
 	// It permit to try to reconnect on serial if timeout throw from watchdog
 	// It try for ever to reconnect on board
-	client.On("timeout", func(s interface{}) {
+	clientArest.On("timeout", func(s interface{}) {
 		isReconnected := false
 		for !isReconnected {
 			time.Sleep(1 * time.Millisecond)
-			err := client.Reconnect(context.TODO())
+			err := clientArest.Reconnect(context.TODO())
 			if err == nil {
 				isReconnected = true
 			} else {
@@ -75,7 +79,7 @@ func NewClient(port string, serialMode *serial.Mode, timeout time.Duration, isDe
 		}
 	})
 
-	return client
+	return clientArest
 }
 
 // Client permit to get curent serial client
@@ -83,9 +87,19 @@ func (c *Client) Client() serial.Port {
 	return c.serialPort
 }
 
-// Return the current pins
+// Pins return the current pins
 func (c *Client) Pins() map[int]*client.Pin {
-	return c.pins
+	return c.pins.Load().(map[int]*client.Pin)
+}
+
+// AddPin permit to add pin.
+func (c *Client) AddPin(name int, pin *client.Pin) {
+	c.mutexPin.Lock()
+	defer c.mutexPin.Unlock()
+
+	pins := c.Pins()
+	pins[name] = pin
+	c.pins.Store(pins)
 }
 
 // Connect start connection to the board
@@ -154,7 +168,7 @@ func (c *Client) Reconnect(ctx context.Context) (err error) {
 	}
 
 	// Set pin mode and output
-	for pin, state := range c.pins {
+	for pin, state := range c.Pins() {
 		err = c.SetPinMode(ctx, pin, state.Mode)
 		if err != nil {
 			return err
@@ -180,8 +194,8 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 		return errors.New("Not connected")
 	}
 
-	if c.pins[pin] == nil {
-		c.pins[pin] = &client.Pin{}
+	if c.Pins()[pin] == nil {
+		c.AddPin(pin, &client.Pin{})
 	}
 
 	select {
@@ -210,7 +224,7 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 			log.Debugf("Resp: %s", resp)
 		}
 
-		c.pins[pin].Mode = mode
+		c.Pins()[pin].Mode = mode
 
 		return nil
 	}
@@ -249,7 +263,7 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 			log.Debugf("Resp: %s", resp)
 		}
 
-		c.pins[pin].Value = level
+		c.Pins()[pin].Value = level
 
 		return nil
 	}
