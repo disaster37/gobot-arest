@@ -3,6 +3,8 @@ package restClient
 import (
 	"context"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/disaster37/gobot-arest/plateforms/arest/client"
@@ -14,25 +16,39 @@ import (
 
 // Client implement arest interface
 type Client struct {
-	resty   *resty.Client
-	isDebug bool
-	url     string
-	timeout time.Duration
-	pins    map[int]*client.Pin
+	resty     *resty.Client
+	isDebug   bool
+	url       string
+	timeout   time.Duration
+	pins      atomic.Value
+	mutexPin  sync.Mutex
+	connected atomic.Value
 	gobot.Eventer
 }
 
 // NewClient permit to initialize new client Object
 func NewClient(url string, timeout time.Duration, isDebug bool) *Client {
 
-	return &Client{
-		resty:   nil,
-		isDebug: isDebug,
-		url:     url,
-		timeout: timeout,
-		Eventer: gobot.NewEventer(),
-		pins:    make(map[int]*client.Pin),
+	clientArest := &Client{
+		resty:     nil,
+		isDebug:   isDebug,
+		url:       url,
+		timeout:   timeout,
+		Eventer:   gobot.NewEventer(),
+		pins:      atomic.Value{},
+		mutexPin:  sync.Mutex{},
+		connected: atomic.Value{},
 	}
+
+	clientArest.AddEvent("connected")
+	clientArest.AddEvent("disconnected")
+	clientArest.AddEvent("reconnected")
+	clientArest.AddEvent("timeout")
+	clientArest.connected.Store(false)
+
+	clientArest.pins.Store(make(map[int]*client.Pin))
+
+	return clientArest
 }
 
 // Client permit to get curent resty client
@@ -40,9 +56,19 @@ func (c *Client) Client() *resty.Client {
 	return c.resty
 }
 
-// Return the current pins
+// Pins return the current pins
 func (c *Client) Pins() map[int]*client.Pin {
-	return c.pins
+	return c.pins.Load().(map[int]*client.Pin)
+}
+
+// AddPin permit to add pin.
+func (c *Client) AddPin(name int, pin *client.Pin) {
+	c.mutexPin.Lock()
+	defer c.mutexPin.Unlock()
+
+	pins := c.Pins()
+	pins[name] = pin
+	c.pins.Store(pins)
 }
 
 // Connect start connection to the board
@@ -57,11 +83,20 @@ func (c *Client) Connect(ctx context.Context) (err error) {
 	}
 
 	_, err = c.DigitalRead(ctx, 0)
-	return err
+	if err != nil {
+		return err
+	}
+
+	c.Publish("connected", true)
+	c.connected.Store(true)
+
+	return
 }
 
 // Disconnect close connecion to the board
 func (c *Client) Disconnect(ctx context.Context) (err error) {
+	c.connected.Store(false)
+	c.Publish("disconnected", true)
 	c.resty = nil
 	return nil
 }
@@ -78,7 +113,7 @@ func (c *Client) Reconnect(ctx context.Context) (err error) {
 	}
 
 	// Set pin mode and output
-	for pin, state := range c.pins {
+	for pin, state := range c.Pins() {
 		err = c.SetPinMode(ctx, pin, state.Mode)
 		if err != nil {
 			return err
@@ -92,11 +127,17 @@ func (c *Client) Reconnect(ctx context.Context) (err error) {
 		}
 	}
 
+	c.Publish("reconnected", true)
+
 	return nil
 }
 
 // SetPinMode permit to set pin mode
 func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err error) {
+
+	if c.Pins()[pin] == nil {
+		c.AddPin(pin, &client.Pin{})
+	}
 
 	select {
 	case <-ctx.Done():
@@ -104,10 +145,6 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 	default:
 		if c.isDebug {
 			log.Debugf("Pin: %d, Mode: %s", pin, mode)
-		}
-
-		if c.pins[pin] == nil {
-			c.pins[pin] = &client.Pin{}
 		}
 
 		if mode != client.ModeInput && mode != client.ModeInputPullup && mode != client.ModeOutput {
@@ -125,7 +162,7 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 			log.Debugf("Resp: %s", resp.String())
 		}
 
-		c.pins[pin].Mode = mode
+		c.Pins()[pin].Mode = mode
 
 		return err
 	}
@@ -140,10 +177,6 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 	default:
 		if c.isDebug {
 			log.Debugf("Pin: %d, Level: %d", pin, level)
-		}
-
-		if c.pins[pin] == nil {
-			c.pins[pin] = &client.Pin{}
 		}
 
 		if level != client.LevelHigh && level != client.LevelLow {
@@ -161,7 +194,7 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 			log.Debugf("Resp: %s", resp.String())
 		}
 
-		c.pins[pin].Value = level
+		c.Pins()[pin].Value = level
 
 		return err
 	}
