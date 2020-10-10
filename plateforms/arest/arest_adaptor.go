@@ -2,7 +2,6 @@ package arest
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/disaster37/gobot-arest/plateforms/arest/client"
@@ -37,7 +36,11 @@ type arestBoard interface {
 	// CallFunction permit to call user function
 	CallFunction(ctx context.Context, name string, param string) (resp int, err error)
 
+	// Pins perit to get current pin settings
 	Pins() map[int]*client.Pin
+
+	// AddPin permit to add pin setting
+	AddPin(name int, pin *client.Pin)
 
 	gobot.Eventer
 }
@@ -58,8 +61,7 @@ type Adaptor struct {
 	isDebug bool
 	Board   arestBoard
 	gobot.Eventer
-	name  string
-	mutex sync.Mutex
+	name string
 }
 
 // Connect init connection throught HTTP to the board

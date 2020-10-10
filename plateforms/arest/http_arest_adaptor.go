@@ -1,7 +1,6 @@
 package arest
 
 import (
-	"sync"
 	"time"
 
 	restClient "github.com/disaster37/gobot-arest/plateforms/arest/client/rest"
@@ -25,7 +24,6 @@ func NewHTTPAdaptor(url string, args ...interface{}) *Adaptor {
 		isDebug: false,
 		timeout: 0,
 		Eventer: gobot.NewEventer(),
-		mutex:   sync.Mutex{},
 	}
 
 	for _, arg := range args {

@@ -1,7 +1,6 @@
 package arest
 
 import (
-	"sync"
 	"time"
 
 	serialClient "github.com/disaster37/gobot-arest/plateforms/arest/client/serial"
@@ -27,7 +26,6 @@ func NewSerialAdaptor(port string, args ...interface{}) *Adaptor {
 		isDebug: false,
 		timeout: 0,
 		Eventer: gobot.NewEventer(),
-		mutex:   sync.Mutex{},
 	}
 
 	mode := serial.Mode{
