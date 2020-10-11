@@ -52,6 +52,8 @@ func (c *Client) readProcess(ctx context.Context) {
 					// read complet
 					stopWatchdogLoop = true
 				}
+
+				time.Sleep(1 * time.Millisecond)
 			}
 		}
 	}()
