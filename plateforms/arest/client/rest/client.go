@@ -29,8 +29,16 @@ type Client struct {
 // NewClient permit to initialize new client Object
 func NewClient(url string, timeout time.Duration, isDebug bool) *Client {
 
+	resty := resty.New().
+		SetHostURL(url).
+		SetHeader("Content-Type", "application/json")
+
+	if timeout != 0 {
+		resty.SetTimeout(timeout)
+	}
+
 	clientArest := &Client{
-		resty:     nil,
+		resty:     resty,
 		isDebug:   isDebug,
 		url:       url,
 		timeout:   timeout,
@@ -74,13 +82,6 @@ func (c *Client) AddPin(name int, pin *client.Pin) {
 // Connect start connection to the board
 // We just try read port 0 value to check http connexion is ready
 func (c *Client) Connect(ctx context.Context) (err error) {
-	resty := resty.New().
-		SetHostURL(c.url).
-		SetHeader("Content-Type", "application/json")
-
-	if c.timeout != 0 {
-		resty.SetTimeout(c.timeout)
-	}
 
 	_, err = c.DigitalRead(ctx, 0)
 	if err != nil {
