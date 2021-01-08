@@ -6,20 +6,14 @@ import (
 	"gobot.io/x/gobot"
 )
 
-const (
-	// Error event
-	Error = "error"
-
-	NewValue = "new-value"
-)
-
+// ValueDriver represent a value driver
 type ValueDriver struct {
 	valueName  string
 	data       interface{}
 	name       string
 	halt       chan bool
 	interval   time.Duration
-	connection ExtraValueReader
+	connection ExtraReader
 	gobot.Eventer
 }
 
@@ -28,7 +22,7 @@ type ValueDriver struct {
 //
 // Optionally accepts:
 //  time.Duration: Interval at which the ValueDriver is polled for new information
-func NewValueDriver(a ExtraValueReader, valueName string, v ...time.Duration) *ValueDriver {
+func NewValueDriver(a ExtraReader, valueName string, v ...time.Duration) *ValueDriver {
 	b := &ValueDriver{
 		name:       gobot.DefaultName("Value"),
 		connection: a,
@@ -48,11 +42,11 @@ func NewValueDriver(a ExtraValueReader, valueName string, v ...time.Duration) *V
 	return b
 }
 
-// Start starts the ButtonDriver and polls the state of the button at the given interval.
+// Start starts the ValueDriver and polls the new value at the given interval.
 //
 // Emits the Events:
 // 	NewValue interface{} - The new value
-//	Error error - On button error
+//	Error error - On value error
 func (b *ValueDriver) Start() (err error) {
 	go func() {
 		for {
@@ -73,20 +67,20 @@ func (b *ValueDriver) Start() (err error) {
 	return
 }
 
-// Halt stops polling the button for new information
+// Halt stops polling the value for new information
 func (b *ValueDriver) Halt() (err error) {
 	b.halt <- true
 	return
 }
 
-// Name returns the ButtonDrivers name
+// Name returns the ValueDriver name
 func (b *ValueDriver) Name() string { return b.name }
 
-// SetName sets the ButtonDrivers name
+// SetName sets the ValueDriver name
 func (b *ValueDriver) SetName(n string) { b.name = n }
 
 // ValueName returns the ValueDriver name
 func (b *ValueDriver) ValueName() string { return b.valueName }
 
-// Connection returns the ButtonDrivers Connection
+// Connection returns the ValueDriver Connection
 func (b *ValueDriver) Connection() gobot.Connection { return b.connection.(gobot.Connection) }

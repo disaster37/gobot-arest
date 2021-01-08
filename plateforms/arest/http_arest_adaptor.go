@@ -20,7 +20,7 @@ type HTTPAdaptor struct {
 //	bool: The debug mode
 func NewHTTPAdaptor(url string, args ...interface{}) *Adaptor {
 	a := &Adaptor{
-		name:    gobot.DefaultName("arest"),
+		name:    gobot.DefaultName("HTTPArest"),
 		isDebug: false,
 		timeout: 0,
 		Eventer: gobot.NewEventer(),

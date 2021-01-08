@@ -22,7 +22,7 @@ type SerialAdaptor struct {
 // serial.Mode: the serial mode
 func NewSerialAdaptor(port string, args ...interface{}) *Adaptor {
 	a := &Adaptor{
-		name:    gobot.DefaultName("arest"),
+		name:    gobot.DefaultName("SerialArest"),
 		isDebug: false,
 		timeout: 0,
 		Eventer: gobot.NewEventer(),
