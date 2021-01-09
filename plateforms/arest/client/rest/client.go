@@ -83,7 +83,10 @@ func (c *Client) AddPin(name int, pin *client.Pin) {
 // We just try read port 0 value to check http connexion is ready
 func (c *Client) Connect(ctx context.Context) (err error) {
 
-	_, err = c.DigitalRead(ctx, 0)
+	_, err = c.resty.R().
+		SetHeader("Accept", "application/json").
+		SetContext(ctx).
+		Post("/id")
 	if err != nil {
 		return err
 	}
