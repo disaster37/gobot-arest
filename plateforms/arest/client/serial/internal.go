@@ -93,6 +93,7 @@ func (c *Client) readProcess(ctx context.Context) {
 			chEnd <- true
 			loop = true
 			c.com.Res <- resp.String()
+
 			resp.Reset()
 		}
 	}()

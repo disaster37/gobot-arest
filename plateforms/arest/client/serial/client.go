@@ -82,6 +82,11 @@ func NewClient(port string, serialMode *serial.Mode, timeout time.Duration, isDe
 	return clientArest
 }
 
+// SetSerial permit to set extra serial.Port
+func (c *Client) SetSerial(s serial.Port) {
+	c.serialPort = s
+}
+
 // Client permit to get curent serial client
 func (c *Client) Client() serial.Port {
 	return c.serialPort
@@ -110,15 +115,18 @@ func (c *Client) Connect(ctx context.Context) (err error) {
 		return
 	}
 
-	serialPort, err := serial.Open(c.port, c.serialMode)
-	if err != nil {
-		return err
+	// Create serial port only if not yet setted
+	if c.serialPort == nil {
+		serialPort, err := serial.Open(c.port, c.serialMode)
+		if err != nil {
+			return err
+		}
+		c.serialPort = serialPort
 	}
-	c.serialPort = serialPort
 
 	// clean current serial
-	serialPort.ResetInputBuffer()
-	serialPort.ResetOutputBuffer()
+	c.serialPort.ResetInputBuffer()
+	c.serialPort.ResetOutputBuffer()
 
 	// Start routine to read serial
 	c.readProcess(ctx)
@@ -233,6 +241,12 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 // DigitalWrite permit to set level on pin
 func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err error) {
 
+	if c.Pins()[pin] == nil {
+		return errors.Errorf("You need to set pin mode on pin %d before use it", pin)
+	}
+	if c.Pins()[pin].Mode != client.ModeOutput {
+		return errors.Errorf("You need to set pin mode as output for pin %d before write on it", pin)
+	}
 	if !c.connected.Load().(bool) {
 		return errors.New("Not connected")
 	}
@@ -271,7 +285,12 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 
 // DigitalRead permit to read level from pin
 func (c *Client) DigitalRead(ctx context.Context, pin int) (level int, err error) {
-
+	if c.Pins()[pin] == nil {
+		return 0, errors.Errorf("You need to set pin mode on pin %d before use it", pin)
+	}
+	if c.Pins()[pin].Mode != client.ModeInput && c.Pins()[pin].Mode != client.ModeInputPullup {
+		return 0, errors.Errorf("You need to set pin mode as input or input_pullup for pin %d before read on it", pin)
+	}
 	if !c.connected.Load().(bool) {
 		return level, errors.New("Not connected")
 	}
@@ -296,7 +315,7 @@ func (c *Client) DigitalRead(ctx context.Context, pin int) (level int, err error
 		}
 
 		if c.isDebug {
-			log.Debugf("Resp: %s", resp)
+			log.Debugf("Resp read: %s", resp)
 		}
 
 		err = json.Unmarshal([]byte(resp), &data)
