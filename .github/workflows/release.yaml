@@ -3,10 +3,10 @@ name: '[builder] CI for release'
 on:
   push:
     branches: 
-    — master 
-  pull_request: 
-    branches: 
-    — master  
+      - master 
+    pull_request: 
+      branches: 
+      - master  
     tags:
       - '*'
 
