@@ -172,6 +172,13 @@ func (c *Client) SetPinMode(ctx context.Context, pin int, mode string) (err erro
 // DigitalWrite permit to set level on pin
 func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err error) {
 
+	if c.Pins()[pin] == nil {
+		return errors.Errorf("You need to set pin mode on pin %d before use it", pin)
+	}
+	if c.Pins()[pin].Mode != client.ModeOutput {
+		return errors.Errorf("You need to set pin mode as output for pin %d before write on it", pin)
+	}
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -203,6 +210,13 @@ func (c *Client) DigitalWrite(ctx context.Context, pin int, level int) (err erro
 
 // DigitalRead permit to read level from pin
 func (c *Client) DigitalRead(ctx context.Context, pin int) (level int, err error) {
+
+	if c.Pins()[pin] == nil {
+		return 0, errors.Errorf("You need to set pin mode on pin %d before use it", pin)
+	}
+	if c.Pins()[pin].Mode != client.ModeInput && c.Pins()[pin].Mode != client.ModeInputPullup {
+		return 0, errors.Errorf("You need to set pin mode as input or input_pullup for pin %d before read on it", pin)
+	}
 
 	select {
 	case <-ctx.Done():
