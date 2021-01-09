@@ -1,4 +1,4 @@
-name: '[builder] CI for release'
+name: 'build'
 
 on:
   push:
