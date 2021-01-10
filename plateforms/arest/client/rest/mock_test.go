@@ -11,5 +11,4 @@ func MockRestClient() *Client {
 	httpmock.ActivateNonDefault(client.Client().GetClient())
 
 	return client
-
 }

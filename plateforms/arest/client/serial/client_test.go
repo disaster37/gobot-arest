@@ -45,11 +45,28 @@ func TestArestTestSuite(t *testing.T) {
 func (s *ArestTestSuite) TestConnect() {
 	s.mux.Lock()
 	defer s.mux.Unlock()
+
 	err := s.client.Connect(context.Background())
 	assert.NoError(s.T(), err)
+	assert.True(s.T(), s.client.connected.Load().(bool))
+}
 
-	err = s.client.Disconnect(context.Background())
+func (s *ArestTestSuite) TestDisconnect() {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	err := s.client.Disconnect(context.Background())
 	assert.NoError(s.T(), err)
+	assert.False(s.T(), s.client.connected.Load().(bool))
+}
+
+func (s *ArestTestSuite) TestReconnect() {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
+	err := s.client.Reconnect(context.Background())
+	assert.NoError(s.T(), err)
+	assert.True(s.T(), s.client.connected.Load().(bool))
 }
 
 func (s *ArestTestSuite) TestSetMode() {

@@ -40,6 +40,35 @@ func TestArestTestSuite(t *testing.T) {
 	suite.Run(t, new(ArestTestSuite))
 }
 
+func (s *ArestTestSuite) TestConnect() {
+	fixture := `{"message": "Pin D0 set to output", "id": "002", "name": "TFP", "hardware": "arduino", "connected": true}`
+	responder := httpmock.NewStringResponder(200, fixture)
+	fakeURL := "http://localhost/id"
+	httpmock.RegisterResponder("GET", fakeURL, responder)
+
+	err := s.client.Connect(context.Background())
+	assert.NoError(s.T(), err)
+	assert.True(s.T(), s.client.connected.Load().(bool))
+}
+
+func (s *ArestTestSuite) TestDisconnect() {
+
+	err := s.client.Disconnect(context.Background())
+	assert.NoError(s.T(), err)
+	assert.False(s.T(), s.client.connected.Load().(bool))
+}
+
+func (s *ArestTestSuite) TestReconnect() {
+	fixture := `{"message": "Pin D0 set to output", "id": "002", "name": "TFP", "hardware": "arduino", "connected": true}`
+	responder := httpmock.NewStringResponder(200, fixture)
+	fakeURL := "http://localhost/id"
+	httpmock.RegisterResponder("GET", fakeURL, responder)
+
+	err := s.client.Reconnect(context.Background())
+	assert.NoError(s.T(), err)
+	assert.True(s.T(), s.client.connected.Load().(bool))
+}
+
 func (s *ArestTestSuite) TestSetMode() {
 
 	fixture := `{"message": "Pin D0 set to output", "id": "002", "name": "TFP", "hardware": "arduino", "connected": true}`

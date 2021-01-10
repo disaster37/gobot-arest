@@ -20,58 +20,6 @@ var _ gpio.DigitalWriter = (*Adaptor)(nil)
 var _ ArestAdaptor = (*Adaptor)(nil)
 var _ extra.ExtraReader = (*Adaptor)(nil)
 
-type mockFirmataBoard struct {
-	disconnectError error
-	gobot.Eventer
-	pins map[int]*client.Pin
-}
-
-func newMockFirmataBoard() *mockFirmataBoard {
-	m := &mockFirmataBoard{
-		Eventer:         gobot.NewEventer(),
-		disconnectError: nil,
-		pins:            make(map[int]*client.Pin, 100),
-	}
-
-	m.pins[1] = &client.Pin{Value: 1}
-	m.pins[15] = &client.Pin{Value: 133}
-
-	return m
-}
-
-func (mockFirmataBoard) Connect(ctx context.Context) error { return nil }
-func (m mockFirmataBoard) Disconnect(ctx context.Context) error {
-	return m.disconnectError
-}
-func (mockFirmataBoard) Reconnect(ctx context.Context) error { return nil }
-func (m mockFirmataBoard) Pins() map[int]*client.Pin {
-	return m.pins
-}
-func (mockFirmataBoard) SetPinMode(ctx context.Context, pin int, mode string) (err error) { return }
-func (mockFirmataBoard) DigitalRead(ctx context.Context, pin int) (level int, err error)  { return }
-func (mockFirmataBoard) DigitalWrite(ctx context.Context, pin int, level int) (err error) { return nil }
-func (mockFirmataBoard) ReadValue(ctx context.Context, name string) (value interface{}, err error) {
-	return 10, nil
-}
-func (mockFirmataBoard) ReadValues(ctx context.Context) (values map[string]interface{}, err error) {
-	return map[string]interface{}{
-		"test": 10,
-	}, nil
-}
-func (mockFirmataBoard) CallFunction(ctx context.Context, name string, param string) (resp int, err error) {
-	return
-}
-func (m mockFirmataBoard) AddPin(name int, pin *client.Pin) {
-	m.pins[name] = pin
-}
-
-func initTestAdaptor() *Adaptor {
-	a := NewHTTPAdaptor("http://localhost")
-	a.Board = newMockFirmataBoard()
-	a.Connect()
-	return a
-}
-
 func TestAdaptor(t *testing.T) {
 	a := initTestAdaptor()
 	gobottest.Assert(t, strings.HasPrefix(a.Name(), "HTTPArest"), true)
@@ -82,8 +30,14 @@ func TestAdaptorFinalize(t *testing.T) {
 	gobottest.Assert(t, a.Finalize(), nil)
 
 	a = initTestAdaptor()
-	a.Board.(*mockFirmataBoard).disconnectError = errors.New("close error")
+	a.Board.(*mockArestBoard).disconnectError = errors.New("close error")
 	gobottest.Assert(t, a.Finalize(), errors.New("close error"))
+}
+
+func TestAdaptorName(t *testing.T) {
+	a := initTestAdaptor()
+	a.SetName("test")
+	gobottest.Assert(t, "test", a.Name())
 }
 
 func TestAdaptorConnect(t *testing.T) {

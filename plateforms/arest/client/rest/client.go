@@ -86,7 +86,7 @@ func (c *Client) Connect(ctx context.Context) (err error) {
 	_, err = c.resty.R().
 		SetHeader("Accept", "application/json").
 		SetContext(ctx).
-		Post("/id")
+		Get("/id")
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,6 @@ func (c *Client) Connect(ctx context.Context) (err error) {
 func (c *Client) Disconnect(ctx context.Context) (err error) {
 	c.connected.Store(false)
 	c.Publish("disconnected", true)
-	c.resty = nil
 	return nil
 }
 
