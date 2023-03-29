@@ -30,7 +30,7 @@ type Client struct {
 func NewClient(url string, timeout time.Duration, isDebug bool) *Client {
 
 	resty := resty.New().
-		SetHostURL(url).
+		SetBaseURL(url).
 		SetHeader("Content-Type", "application/json")
 
 	if timeout != 0 {
@@ -351,7 +351,7 @@ func (c *Client) CallFunction(ctx context.Context, name string, param string) (v
 		if temp, ok := data["return_value"]; ok {
 			value = int(temp.(float64))
 		} else {
-			errors.Errorf("Function %s not found", name)
+			return value, errors.Errorf("Function %s not found", name)
 		}
 
 		return value, err

@@ -10,7 +10,6 @@ import (
 
 // SerialAdaptor is the Gobot Adaptor for Arest based boards
 type SerialAdaptor struct {
-	port string
 	Adaptor
 }
 
@@ -19,6 +18,7 @@ type SerialAdaptor struct {
 //	string: The board name
 //	time.Duration: The timeout for serial response
 //	bool: The debug mode
+//
 // serial.Mode: the serial mode
 func NewSerialAdaptor(port string, args ...interface{}) *Adaptor {
 	a := &Adaptor{
@@ -33,15 +33,15 @@ func NewSerialAdaptor(port string, args ...interface{}) *Adaptor {
 	}
 
 	for _, arg := range args {
-		switch arg.(type) {
+		switch argTmp := arg.(type) {
 		case string:
-			a.name = arg.(string)
+			a.name = argTmp
 		case time.Duration:
-			a.timeout = arg.(time.Duration)
+			a.timeout = argTmp
 		case bool:
-			a.isDebug = arg.(bool)
+			a.isDebug = argTmp
 		case serial.Mode:
-			mode = arg.(serial.Mode)
+			mode = argTmp
 		}
 	}
 

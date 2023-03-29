@@ -87,18 +87,24 @@ func (s *ArestTestSuite) TestDigitalWrite() {
 	responder := httpmock.NewStringResponder(200, fixture)
 	fakeURL := "http://localhost/digital/0/1"
 	httpmock.RegisterResponder("POST", fakeURL, responder)
+	httpmock.RegisterResponder("POST", "http://localhost/mode/0/i", responder)
+	httpmock.RegisterResponder("POST", "http://localhost/mode/0/o", responder)
 
 	// Return error if pin is not yet setted
 	err := s.client.DigitalWrite(context.Background(), 0, client.LevelHigh)
 	assert.Error(s.T(), err)
 
 	// Return error if pin is not output mode
-	s.client.SetPinMode(context.Background(), 0, client.ModeInput)
+	if err := s.client.SetPinMode(context.Background(), 0, client.ModeInput); err != nil {
+		s.T().Fatal(err)
+	}
 	err = s.client.DigitalWrite(context.Background(), 0, client.LevelHigh)
 	assert.Error(s.T(), err)
 
 	// Normal use case
-	s.client.SetPinMode(context.Background(), 0, client.ModeOutput)
+	if err := s.client.SetPinMode(context.Background(), 0, client.ModeOutput); err != nil {
+		s.T().Fatal(err)
+	}
 	err = s.client.DigitalWrite(context.Background(), 0, client.LevelHigh)
 	assert.NoError(s.T(), err)
 }
@@ -112,18 +118,24 @@ func (s *ArestTestSuite) TestDigitalRead() {
 	responder := httpmock.NewJsonResponderOrPanic(200, fixture)
 	fakeURL := "http://localhost/digital/0"
 	httpmock.RegisterResponder("GET", fakeURL, responder)
+	httpmock.RegisterResponder("POST", "http://localhost/mode/0/o", responder)
+	httpmock.RegisterResponder("POST", "http://localhost/mode/0/i", responder)
 
 	// Return error if pin is not yet setted
 	_, err := s.client.DigitalRead(context.Background(), 0)
 	assert.Error(s.T(), err)
 
 	// Return error if pin is not output mode
-	s.client.SetPinMode(context.Background(), 0, client.ModeOutput)
+	if err := s.client.SetPinMode(context.Background(), 0, client.ModeOutput); err != nil {
+		s.T().Fatal(err)
+	}
 	_, err = s.client.DigitalRead(context.Background(), 0)
 	assert.Error(s.T(), err)
 
 	// Normal use case
-	s.client.SetPinMode(context.Background(), 0, client.ModeInput)
+	if err := s.client.SetPinMode(context.Background(), 0, client.ModeInput); err != nil {
+		s.T().Fatal(err)
+	}
 	level, err := s.client.DigitalRead(context.Background(), 0)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), client.LevelHigh, level)
@@ -145,7 +157,7 @@ func (s *ArestTestSuite) TestReadValue() {
 	assert.Equal(s.T(), true, value.(bool))
 
 	// Bad
-	value, err = s.client.ReadValue(context.Background(), "bad")
+	_, err = s.client.ReadValue(context.Background(), "bad")
 	assert.Error(s.T(), err)
 }
 
@@ -182,6 +194,6 @@ func (s *ArestTestSuite) TestCallFunction() {
 	assert.Equal(s.T(), 1, resp)
 
 	// Bad
-	resp, err = s.client.CallFunction(context.Background(), "bad", "test")
+	_, err = s.client.CallFunction(context.Background(), "bad", "test")
 	assert.Error(s.T(), err)
 }

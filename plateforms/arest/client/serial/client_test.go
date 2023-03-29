@@ -77,7 +77,9 @@ func (s *ArestTestSuite) TestSetMode() {
 	assert.Error(s.T(), err)
 
 	// Normal use case
-	s.client.Connect(context.Background())
+	if err := s.client.Connect(context.Background()); err != nil {
+		s.T().Fatal(err)
+	}
 	err = s.client.SetPinMode(context.Background(), 0, client.ModeOutput)
 	assert.NoError(s.T(), err)
 }
@@ -86,26 +88,34 @@ func (s *ArestTestSuite) TestDigitalWrite() {
 
 	s.mux.Lock()
 	defer s.mux.Unlock()
-	s.client.Connect(context.Background())
+	if err := s.client.Connect(context.Background()); err != nil {
+		s.T().Fatal(err)
+	}
 
 	// Return error if pin is not yet setted
 	err := s.client.DigitalWrite(context.Background(), 0, client.LevelHigh)
 	assert.Error(s.T(), err)
 
 	// Return error if pin is not output mode
-	s.client.SetPinMode(context.Background(), 0, client.ModeInput)
+	if err := s.client.SetPinMode(context.Background(), 0, client.ModeInput); err != nil {
+		s.T().Fatal(err)
+	}
 	err = s.client.DigitalWrite(context.Background(), 0, client.LevelHigh)
 	assert.Error(s.T(), err)
 
 	// Normal use case
-	s.client.SetPinMode(context.Background(), 0, client.ModeOutput)
+	if err := s.client.SetPinMode(context.Background(), 0, client.ModeOutput); err != nil {
+		s.T().Fatal(err)
+	}
 	err = s.client.DigitalWrite(context.Background(), 0, client.LevelHigh)
 	assert.NoError(s.T(), err)
 }
 
 func (s *ArestTestSuite) TestDigitalRead() {
 
-	s.client.Connect(context.Background())
+	if err := s.client.Connect(context.Background()); err != nil {
+		s.T().Fatal(err)
+	}
 
 	var err error
 
@@ -115,12 +125,16 @@ func (s *ArestTestSuite) TestDigitalRead() {
 	assert.Error(s.T(), err)
 
 	// Return error if pin is not output mode
-	s.client.SetPinMode(context.Background(), 0, client.ModeOutput)
+	if err := s.client.SetPinMode(context.Background(), 0, client.ModeOutput); err != nil {
+		s.T().Fatal(err)
+	}
 	_, err = s.client.DigitalRead(context.Background(), 0)
 	assert.Error(s.T(), err)
 
 	// Normal use case
-	s.client.SetPinMode(context.Background(), 0, client.ModeInput)
+	if err := s.client.SetPinMode(context.Background(), 0, client.ModeInput); err != nil {
+		s.T().Fatal(err)
+	}
 
 	fixture := map[string]interface{}{
 		"return_value": 1,
@@ -137,7 +151,9 @@ func (s *ArestTestSuite) TestDigitalRead() {
 
 func (s *ArestTestSuite) TestReadValue() {
 
-	s.client.Connect(context.Background())
+	if err := s.client.Connect(context.Background()); err != nil {
+		s.T().Fatal(err)
+	}
 
 	var err error
 	fixture := map[string]interface{}{
@@ -153,13 +169,15 @@ func (s *ArestTestSuite) TestReadValue() {
 	assert.Equal(s.T(), true, value.(bool))
 
 	// Bad
-	value, err = s.client.ReadValue(context.Background(), "bad")
+	_, err = s.client.ReadValue(context.Background(), "bad")
 	assert.Error(s.T(), err)
 }
 
 func (s *ArestTestSuite) TestReadValues() {
 
-	s.client.Connect(context.Background())
+	if err := s.client.Connect(context.Background()); err != nil {
+		s.T().Fatal(err)
+	}
 
 	var err error
 	fixture := map[string]interface{}{
@@ -180,7 +198,9 @@ func (s *ArestTestSuite) TestReadValues() {
 
 func (s *ArestTestSuite) TestCallFunction() {
 
-	s.client.Connect(context.Background())
+	if err := s.client.Connect(context.Background()); err != nil {
+		s.T().Fatal(err)
+	}
 
 	var err error
 	fixture := map[string]interface{}{
@@ -197,6 +217,6 @@ func (s *ArestTestSuite) TestCallFunction() {
 
 	// Bad
 	s.client.Client().(*MockSerial).ReadData = make([]byte, 0)
-	resp, err = s.client.CallFunction(context.Background(), "bad", "test")
+	_, err = s.client.CallFunction(context.Background(), "bad", "test")
 	assert.Error(s.T(), err)
 }

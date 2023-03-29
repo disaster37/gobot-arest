@@ -2,23 +2,6 @@ package extra
 
 import "sync"
 
-type extraTestBareAdaptor struct{}
-
-func (t *extraTestBareAdaptor) Connect() (err error)  { return }
-func (t *extraTestBareAdaptor) Finalize() (err error) { return }
-func (t *extraTestBareAdaptor) Name() string          { return "" }
-func (t *extraTestBareAdaptor) SetName(n string)      {}
-
-type extraTestExtraReader struct {
-	extraTestBareAdaptor
-}
-
-func (t *extraTestExtraReader) ValueRead(name string) (val interface{}, err error)   { return }
-func (t *extraTestExtraReader) ValuesRead() (vals map[string]interface{}, err error) { return }
-func (t *extraTestExtraReader) FunctionCall(name string, parameters string) (val int, err error) {
-	return
-}
-
 type extraTestAdaptor struct {
 	name                    string
 	port                    string

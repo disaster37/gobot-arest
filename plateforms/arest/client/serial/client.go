@@ -66,7 +66,7 @@ func NewClient(port string, serialMode *serial.Mode, timeout time.Duration, isDe
 
 	// It permit to try to reconnect on serial if timeout throw from watchdog
 	// It try for ever to reconnect on board
-	clientArest.On("timeout", func(s interface{}) {
+	if err := clientArest.On("timeout", func(s interface{}) {
 		isReconnected := false
 		for !isReconnected {
 			time.Sleep(1 * time.Millisecond)
@@ -77,7 +77,9 @@ func NewClient(port string, serialMode *serial.Mode, timeout time.Duration, isDe
 				log.Error(err)
 			}
 		}
-	})
+	}); err != nil {
+		panic(err)
+	}
 
 	return clientArest
 }
@@ -125,8 +127,12 @@ func (c *Client) Connect(ctx context.Context) (err error) {
 	}
 
 	// clean current serial
-	c.serialPort.ResetInputBuffer()
-	c.serialPort.ResetOutputBuffer()
+	if err = c.serialPort.ResetInputBuffer(); err != nil {
+		return err
+	}
+	if err = c.serialPort.ResetOutputBuffer(); err != nil {
+		return err
+	}
 
 	// Start routine to read serial
 	c.readProcess(ctx)
@@ -148,11 +154,13 @@ func (c *Client) Connect(ctx context.Context) (err error) {
 func (c *Client) Disconnect(ctx context.Context) (err error) {
 
 	c.connected.Store(false)
-	err = c.serialPort.Close()
-	c.serialPort.ResetInputBuffer()
-	c.serialPort.ResetOutputBuffer()
-
-	if err != nil {
+	if err = c.serialPort.Close(); err != nil {
+		return err
+	}
+	if err = c.serialPort.ResetInputBuffer(); err != nil {
+		return err
+	}
+	if err = c.serialPort.ResetOutputBuffer(); err != nil {
 		return err
 	}
 
@@ -447,7 +455,7 @@ func (c *Client) CallFunction(ctx context.Context, name string, param string) (v
 		if temp, ok := data["return_value"]; ok {
 			value = int(temp.(float64))
 		} else {
-			err = errors.Errorf("Function %s not found", name)
+			return value, errors.Errorf("Function %s not found", name)
 		}
 
 		return value, nil

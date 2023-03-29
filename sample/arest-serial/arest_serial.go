@@ -37,9 +37,13 @@ func main() {
 	}
 
 	work := func() {
-		led.Off()
-		relay.Off()
-		button.On(gpio.ButtonPush, func(s interface{}) {
+		if err := led.Off(); err != nil {
+			log.Error(err)
+		}
+		if err := relay.Off(); err != nil {
+			log.Error(err)
+		}
+		if err := button.On(gpio.ButtonPush, func(s interface{}) {
 			log.Debug("Pushed")
 			err := led.Toggle()
 			if err != nil {
@@ -50,7 +54,9 @@ func main() {
 			if err != nil {
 				log.Error(err)
 			}
-		})
+		}); err != nil {
+			panic(err)
+		}
 	}
 
 	robot := gobot.NewRobot("arest",
@@ -59,6 +65,8 @@ func main() {
 		work,
 	)
 
-	robot.Start()
+	if err := robot.Start(); err != nil {
+		panic(err)
+	}
 
 }

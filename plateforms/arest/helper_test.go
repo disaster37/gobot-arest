@@ -55,6 +55,8 @@ func (m mockArestBoard) AddPin(name int, pin *client.Pin) {
 func initTestAdaptor() *Adaptor {
 	a := NewHTTPAdaptor("http://localhost")
 	a.Board = newMockArestBoard()
-	a.Connect()
+	if err := a.Connect(); err != nil {
+		panic(err)
+	}
 	return a
 }

@@ -32,13 +32,16 @@ func (a *Adaptor) DigitalWrite(pin string, level byte) (err error) {
 func (a *Adaptor) DigitalRead(pin string) (val int, err error) {
 
 	p, err := strconv.Atoi(pin)
-	ctx := context.TODO()
 	if err != nil {
-		return
+		return val, err
 	}
+	ctx := context.TODO()
+	
 
 	if a.Board.Pins()[p] == nil {
-		err = a.Board.SetPinMode(ctx, p, client.ModeInput)
+		if err = a.Board.SetPinMode(ctx, p, client.ModeInput); err != nil {
+			return val, err
+		}
 	}
 
 	return a.Board.DigitalRead(ctx, p)

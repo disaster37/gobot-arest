@@ -38,14 +38,16 @@ func TestValueDriverValueName(t *testing.T) {
 }
 
 func TestValueDriverStart(t *testing.T) {
-	sem := make(chan bool, 0)
+	sem := make(chan bool)
 	d, a := initTestValueDriver()
 
 	// Test Read value and wait event
-	d.Once(NewValue, func(data interface{}) {
+	if err := d.Once(NewValue, func(data interface{}) {
 		gobottest.Assert(t, d.data, 10)
 		sem <- true
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	a.TestAdaptorValueRead(func(name string) (val interface{}, err error) {
 		val = 10
 		return
@@ -58,9 +60,11 @@ func TestValueDriverStart(t *testing.T) {
 	}
 
 	// Test Read value when error and wait event
-	d.Once(Error, func(data interface{}) {
+	if err := d.Once(Error, func(data interface{}) {
 		sem <- true
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	a.TestAdaptorValueRead(func(name string) (val interface{}, err error) {
 		err = errors.New("value read error")
 		return

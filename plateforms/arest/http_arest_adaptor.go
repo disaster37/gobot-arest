@@ -9,7 +9,6 @@ import (
 
 // HTTPAdaptor is the Gobot Adaptor for Arest based boards
 type HTTPAdaptor struct {
-	url string
 	Adaptor
 }
 
@@ -27,13 +26,13 @@ func NewHTTPAdaptor(url string, args ...interface{}) *Adaptor {
 	}
 
 	for _, arg := range args {
-		switch arg.(type) {
+		switch argTmp := arg.(type) {
 		case string:
-			a.name = arg.(string)
+			a.name = argTmp
 		case time.Duration:
-			a.timeout = arg.(time.Duration)
+			a.timeout = argTmp
 		case bool:
-			a.isDebug = arg.(bool)
+			a.isDebug = argTmp
 		}
 	}
 
