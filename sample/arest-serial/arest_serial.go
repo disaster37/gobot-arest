@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/disaster37/gobot-arest/plateforms/arest"
-	"github.com/disaster37/gobot-arest/plateforms/arest/client"
+	"github.com/disaster37/gobot-arest/v2/plateforms/arest"
+	"github.com/disaster37/gobot-arest/v2/plateforms/arest/client"
 	log "github.com/sirupsen/logrus"
 	"gobot.io/x/gobot/v2"
 	"gobot.io/x/gobot/v2/drivers/gpio"

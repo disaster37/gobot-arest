@@ -1,4 +1,4 @@
-module github.com/disaster37/gobot-arest
+module github.com/disaster37/gobot-arest/v2
 
 go 1.24
 

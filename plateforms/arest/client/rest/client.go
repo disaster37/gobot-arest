@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/disaster37/gobot-arest/plateforms/arest/client"
+	"github.com/disaster37/gobot-arest/v2/plateforms/arest/client"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"

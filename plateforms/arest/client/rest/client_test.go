@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/disaster37/gobot-arest/plateforms/arest/client"
+	"github.com/disaster37/gobot-arest/v2/plateforms/arest/client"
 	"github.com/jarcoal/httpmock"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

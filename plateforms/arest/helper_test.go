@@ -3,7 +3,7 @@ package arest
 import (
 	"context"
 
-	"github.com/disaster37/gobot-arest/plateforms/arest/client"
+	"github.com/disaster37/gobot-arest/v2/plateforms/arest/client"
 	"gobot.io/x/gobot/v2"
 )
 

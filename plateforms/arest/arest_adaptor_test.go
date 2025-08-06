@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/disaster37/gobot-arest/drivers/extra"
-	"github.com/disaster37/gobot-arest/plateforms/arest/client"
+	"github.com/disaster37/gobot-arest/v2/drivers/extra"
+	"github.com/disaster37/gobot-arest/v2/plateforms/arest/client"
 	"github.com/stretchr/testify/assert"
 	"gobot.io/x/gobot/v2"
 	"gobot.io/x/gobot/v2/drivers/gpio"
