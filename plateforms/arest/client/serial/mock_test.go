@@ -29,7 +29,8 @@ func (m *MockSerialBase) SetRTS(rts bool) error                                {
 func (m *MockSerialBase) GetModemStatusBits() (*serial.ModemStatusBits, error) { return nil, nil }
 func (m *MockSerialBase) Close() error                                         { return nil }
 func (m *MockSerialBase) Break(t time.Duration) error                          { return nil }
-func (m *MockSerialBase) SetReadTimeout(t time.Duration) error { return nil }
+func (m *MockSerialBase) SetReadTimeout(t time.Duration) error                 { return nil }
+func (m *MockSerialBase) Drain() error                                         { return nil }
 
 type MockSerial struct {
 	MockSerialBase
