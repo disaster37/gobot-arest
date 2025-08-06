@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"go.bug.st/serial"
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 // Client implement arest interface

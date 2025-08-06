@@ -11,7 +11,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 // Client implement arest interface

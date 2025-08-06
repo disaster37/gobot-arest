@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"gobot.io/x/gobot"
-	"gobot.io/x/gobot/gobottest"
+	"github.com/stretchr/testify/assert"
+	"gobot.io/x/gobot/v2"
 )
 
 const valueTestDelay = 250
@@ -22,19 +22,19 @@ func initTestValueDriver() (*ValueDriver, *extraTestAdaptor) {
 
 func TestValueDriverDefaultName(t *testing.T) {
 	g, _ := initTestValueDriver()
-	gobottest.Refute(t, g.Connection(), nil)
-	gobottest.Assert(t, strings.HasPrefix(g.Name(), "Value"), true)
+	assert.NotNil(t, g.Connection())
+	assert.True(t, strings.HasPrefix(g.Name(), "Value"))
 }
 
 func TestValueDriverSetName(t *testing.T) {
 	g, _ := initTestValueDriver()
 	g.SetName("mybot")
-	gobottest.Assert(t, g.Name(), "mybot")
+	assert.Equal(t, g.Name(), "mybot")
 }
 
 func TestValueDriverValueName(t *testing.T) {
 	g, _ := initTestValueDriver()
-	gobottest.Assert(t, g.ValueName(), "test")
+	assert.Equal(t, g.ValueName(), "test")
 }
 
 func TestValueDriverStart(t *testing.T) {
@@ -43,7 +43,7 @@ func TestValueDriverStart(t *testing.T) {
 
 	// Test Read value and wait event
 	if err := d.Once(NewValue, func(data interface{}) {
-		gobottest.Assert(t, d.data, 10)
+		assert.Equal(t, d.data, 10)
 		sem <- true
 	}); err != nil {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestValueDriverStart(t *testing.T) {
 		val = 10
 		return
 	})
-	gobottest.Assert(t, d.Start(), nil)
+	assert.NoError(t, d.Start())
 	select {
 	case <-sem:
 	case <-time.After(valueTestDelay * time.Millisecond):
@@ -82,5 +82,5 @@ func TestValueDriverHalt(t *testing.T) {
 	go func() {
 		<-d.halt
 	}()
-	gobottest.Assert(t, d.Halt(), nil)
+	assert.NoError(t, d.Halt())
 }

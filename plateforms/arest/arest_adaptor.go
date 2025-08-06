@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/disaster37/gobot-arest/plateforms/arest/client"
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 type arestBoard interface {

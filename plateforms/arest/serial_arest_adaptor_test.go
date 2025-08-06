@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"gobot.io/x/gobot"
-	"gobot.io/x/gobot/gobottest"
+	"github.com/stretchr/testify/assert"
+	"gobot.io/x/gobot/v2"
 )
 
 var _ gobot.Adaptor = (*SerialAdaptor)(nil)
@@ -20,11 +20,11 @@ func TestArestSerialAdaptor(t *testing.T) {
 
 	// With basic parameters
 	a := initTestSerialAdaptor()
-	gobottest.Assert(t, strings.HasPrefix(a.Name(), "SerialArest"), true)
+	assert.True(t, strings.HasPrefix(a.Name(), "SerialArest"))
 
 	// With all parameters
 	a = NewSerialAdaptor("/dev/null", 10*time.Second, "TEST", true)
-	gobottest.Assert(t, "TEST", a.Name())
-	gobottest.Assert(t, 10.*time.Second, a.timeout)
-	gobottest.Assert(t, true, a.isDebug)
+	assert.Equal(t, "TEST", a.Name())
+	assert.Equal(t, 10.*time.Second, a.timeout)
+	assert.True(t, a.isDebug)
 }

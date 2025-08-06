@@ -5,7 +5,7 @@ import (
 
 	serialClient "github.com/disaster37/gobot-arest/plateforms/arest/client/serial"
 	"go.bug.st/serial"
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 // SerialAdaptor is the Gobot Adaptor for Arest based boards

@@ -7,8 +7,8 @@ import (
 	"github.com/disaster37/gobot-arest/plateforms/arest"
 	"github.com/disaster37/gobot-arest/plateforms/arest/client"
 	log "github.com/sirupsen/logrus"
-	"gobot.io/x/gobot"
-	"gobot.io/x/gobot/drivers/gpio"
+	"gobot.io/x/gobot/v2"
+	"gobot.io/x/gobot/v2/drivers/gpio"
 )
 
 func main() {
@@ -20,11 +20,10 @@ func main() {
 
 	// Input pullup button
 	button := gpio.NewButtonDriver(arestSerial, "41")
-	button.DefaultState = 1
+	button.SetDefaultState(1)
 
 	// Relay with normally closed
-	relay := gpio.NewRelayDriver(arestSerial, "46")
-	relay.Inverted = true
+	relay := gpio.NewRelayDriver(arestSerial, "46", gpio.WithRelayInverted())
 
 	// Put button as INPUT_PULLUP
 	err := arestSerial.Connect()

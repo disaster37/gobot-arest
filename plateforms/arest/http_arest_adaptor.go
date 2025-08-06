@@ -4,7 +4,7 @@ import (
 	"time"
 
 	restClient "github.com/disaster37/gobot-arest/plateforms/arest/client/rest"
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 // HTTPAdaptor is the Gobot Adaptor for Arest based boards

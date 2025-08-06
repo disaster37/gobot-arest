@@ -3,7 +3,7 @@ package extra
 import (
 	"time"
 
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 // ValueDriver represent a value driver
@@ -21,7 +21,8 @@ type ValueDriver struct {
 // 1 seconds given a ValueReader.
 //
 // Optionally accepts:
-//  time.Duration: Interval at which the ValueDriver is polled for new information
+//
+//	time.Duration: Interval at which the ValueDriver is polled for new information
 func NewValueDriver(a ExtraReader, valueName string, v ...time.Duration) *ValueDriver {
 	b := &ValueDriver{
 		name:       gobot.DefaultName("Value"),
@@ -45,7 +46,8 @@ func NewValueDriver(a ExtraReader, valueName string, v ...time.Duration) *ValueD
 // Start starts the ValueDriver and polls the new value at the given interval.
 //
 // Emits the Events:
-// 	NewValue interface{} - The new value
+//
+//	NewValue interface{} - The new value
 //	Error error - On value error
 func (b *ValueDriver) Start() (err error) {
 	go func() {
