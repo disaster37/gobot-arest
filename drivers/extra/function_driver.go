@@ -1,7 +1,7 @@
 package extra
 
 import (
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 // FunctionDriver represent a function driver
@@ -32,6 +32,7 @@ func NewFunctionDriver(a ExtraReader, functionName string, parameters string) *F
 // Start implements the Driver interface
 //
 // Emits the Events:
+//
 //	Error error - On function call error
 func (b *FunctionDriver) Start() (err error) { return }
 
@@ -59,6 +60,7 @@ func (b *FunctionDriver) Connection() gobot.Connection { return b.connection.(go
 // Call run function
 //
 // Emits the Events:
+//
 //	Error error - On function call error
 func (b *FunctionDriver) Call() (err error) {
 	ret, err := b.connection.FunctionCall(b.functionName, b.parameters)

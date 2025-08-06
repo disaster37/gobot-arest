@@ -14,7 +14,7 @@ const (
 )
 
 // ErrCallFunctionReturnCodeMismatch is error when call function return code that mistmach the provided
-var ErrCallFunctionReturnCodeMismatch error = errors.New("Return code mismatch when call function")
+var ErrCallFunctionReturnCodeMismatch error = errors.New("return code mismatch when call function")
 
 // ExtraReader can read abitrary value
 type ExtraReader interface {

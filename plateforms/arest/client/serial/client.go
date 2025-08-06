@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/disaster37/gobot-arest/plateforms/arest/client"
+	"github.com/disaster37/gobot-arest/v2/plateforms/arest/client"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"go.bug.st/serial"
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 // Client implement arest interface

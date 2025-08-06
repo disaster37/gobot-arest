@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/disaster37/gobot-arest/plateforms/arest/client"
+	"github.com/disaster37/gobot-arest/v2/plateforms/arest/client"
 )
 
 // DigitalWrite writes a value to the pin. Acceptable values are 1 or 0.
@@ -36,7 +36,6 @@ func (a *Adaptor) DigitalRead(pin string) (val int, err error) {
 		return val, err
 	}
 	ctx := context.TODO()
-	
 
 	if a.Board.Pins()[p] == nil {
 		if err = a.Board.SetPinMode(ctx, p, client.ModeInput); err != nil {

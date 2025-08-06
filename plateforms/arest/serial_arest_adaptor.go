@@ -3,9 +3,9 @@ package arest
 import (
 	"time"
 
-	serialClient "github.com/disaster37/gobot-arest/plateforms/arest/client/serial"
+	serialClient "github.com/disaster37/gobot-arest/v2/plateforms/arest/client/serial"
 	"go.bug.st/serial"
-	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/v2"
 )
 
 // SerialAdaptor is the Gobot Adaptor for Arest based boards
